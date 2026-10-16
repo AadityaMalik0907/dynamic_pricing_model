@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.Python
+build/
+dist/
+.venv/
+venv/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Local data, databases, logs, and model artifacts
+data/*
+!data/.gitkeep
+artifacts/*
+!artifacts/.gitkeep
+*.db
+*.sqlite3
+*.log
+
+# Tool and editor output
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.idea/
+.vscode/
