@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     model_refresh_days: int = Field(default=7, gt=0)
 
     @model_validator(mode="after")
-    def validate_price_bounds(self) -> Settings:
+    def validate_price_bounds(self) -> "Settings":
         if self.price_floor >= self.price_ceiling:
             raise ValueError("PRICE_FLOOR must be less than PRICE_CEILING")
         if self.pricing_domain not in {"hotel", "ecommerce"}:

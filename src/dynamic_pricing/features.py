@@ -29,6 +29,7 @@ _OUTPUT_COLUMNS = (
     "competitor_price_relative",
     "competitor_price_missing",
     "demand_lag_1",
+    "demand_seasonal_lag_7",
     "demand_rolling_mean_7",
     "event",
     "seasonality",
@@ -81,8 +82,7 @@ class DemandFeatureTransformer(TransformerMixin, BaseEstimator):
         # prevent future or current target labels from entering a feature row.
         context = pd.concat([self.history_, current], ignore_index=True)
         history_by_entity = {
-            entity_id: group
-            for entity_id, group in context.groupby("entity_id", sort=False)
+            entity_id: group for entity_id, group in context.groupby("entity_id", sort=False)
         }
 
         output_rows: list[dict[str, object]] = []
@@ -120,9 +120,7 @@ class DemandFeatureTransformer(TransformerMixin, BaseEstimator):
                         # Repeated snapshots of a prior target bucket should
                         # contribute only the latest value known by this time.
                         available_demand = (
-                            same_scope.sort_values(
-                                ["target_at", "observed_at"], kind="mergesort"
-                            )
+                            same_scope.sort_values(["target_at", "observed_at"], kind="mergesort")
                             .drop_duplicates("target_at", keep="last")
                             .sort_values("target_at", kind="mergesort")[
                                 ["target_at", "observed_at", "demand"]
@@ -130,9 +128,12 @@ class DemandFeatureTransformer(TransformerMixin, BaseEstimator):
                         )
 
             last_demand = (
-                float(available_demand.iloc[-1]["demand"])
-                if not available_demand.empty
-                else np.nan
+                float(available_demand.iloc[-1]["demand"]) if not available_demand.empty else np.nan
+            )
+            seasonal_target = target - pd.Timedelta(days=7)
+            seasonal_rows = available_demand.loc[available_demand["target_at"] == seasonal_target]
+            seasonal_demand = (
+                float(seasonal_rows.iloc[-1]["demand"]) if not seasonal_rows.empty else np.nan
             )
             rolling_demand = (
                 float(available_demand.tail(7)["demand"].mean())
@@ -158,6 +159,7 @@ class DemandFeatureTransformer(TransformerMixin, BaseEstimator):
                     "competitor_price_relative": competitor_relative,
                     "competitor_price_missing": int(competitor_missing),
                     "demand_lag_1": last_demand,
+                    "demand_seasonal_lag_7": seasonal_demand,
                     "demand_rolling_mean_7": rolling_demand,
                     "event": row.get("event", pd.NA),
                     "seasonality": row.get("seasonality", pd.NA),
@@ -166,6 +168,10 @@ class DemandFeatureTransformer(TransformerMixin, BaseEstimator):
             )
 
         features = pd.DataFrame(output_rows, columns=_OUTPUT_COLUMNS, index=current.index)
+        for column in ("event", "seasonality", "product_category"):
+            features[column] = (
+                features[column].astype(object).where(features[column].notna(), np.nan)
+            )
         assert_feature_output(features)
         return features
 
@@ -192,5 +198,8 @@ def assert_feature_output(features: pd.DataFrame) -> None:
     leaked = forbidden.intersection(features.columns)
     if leaked:
         raise DataValidationError(
-            [f"feature output contains forbidden label/metadata column(s): {', '.join(sorted(leaked))}"]
+            [
+                "feature output contains forbidden label/metadata column(s): "
+                f"{', '.join(sorted(leaked))}"
+            ]
         )

@@ -40,12 +40,16 @@ def profile_observations(frame: pd.DataFrame) -> dict[str, object]:
             }
             for column in ("price", "demand", "inventory")
         }
-        weekday_summary = group.assign(
-            target_weekday=group["target_at"].dt.day_name().str[:3]
-        ).groupby("target_weekday", sort=True)["demand"].agg(["count", "mean"])
-        month_summary = group.assign(
-            target_month=group["target_at"].dt.month
-        ).groupby("target_month", sort=True)["demand"].agg(["count", "mean"])
+        weekday_summary = (
+            group.assign(target_weekday=group["target_at"].dt.day_name().str[:3])
+            .groupby("target_weekday", sort=True)["demand"]
+            .agg(["count", "mean"])
+        )
+        month_summary = (
+            group.assign(target_month=group["target_at"].dt.month)
+            .groupby("target_month", sort=True)["demand"]
+            .agg(["count", "mean"])
+        )
         by_domain[str(domain)] = {
             "row_count": int(len(group)),
             "entity_count": int(group["entity_id"].nunique()),
@@ -96,13 +100,16 @@ def profile_observations(frame: pd.DataFrame) -> dict[str, object]:
         "Price-demand correlations are descriptive associations, not a causal price effect."
     ]
     if data["source"].eq("synthetic_demo").any():
-        warnings.append("This profile includes synthetic demo observations, not observed market data.")
+        warnings.append(
+            "This profile includes synthetic demo observations, not observed market data."
+        )
     if any(
         values["inventory"]["demand_at_or_above_inventory_count"] > 0
         for values in by_domain.values()
     ):
         warnings.append(
-            "Demand reaches or exceeds recorded inventory for some rows; observed demand may be censored."
+            "Demand reaches or exceeds recorded inventory for some rows; "
+            "observed demand may be censored."
         )
 
     return {
@@ -116,8 +123,10 @@ def profile_observations(frame: pd.DataFrame) -> dict[str, object]:
         "by_domain": by_domain,
         "forecast_baseline_plan": [
             "Persistence baseline: latest mature prior demand for the same entity.",
-            "Seasonal baseline: mature demand from the same weekday one week earlier when available.",
-            "Score baselines on chronological holdouts in Phase 4; this profile is descriptive only.",
+            "Seasonal baseline: mature demand from the same weekday one week earlier "
+            "when available.",
+            "Score baselines on chronological holdouts in Phase 4; this profile is "
+            "descriptive only.",
         ],
         "warnings": warnings,
     }
@@ -155,9 +164,7 @@ def render_profile_markdown(profile: Mapping[str, object]) -> str:
         ]
     )
     for column, values in profile["missingness"].items():
-        lines.append(
-            f"| {column} | {values['missing_count']} | {values['missing_rate']:.1%} |"
-        )
+        lines.append(f"| {column} | {values['missing_count']} | {values['missing_rate']:.1%} |")
 
     lines.extend(["", "## Inventory and price-demand checks", ""])
     for domain, raw_values in profile["by_domain"].items():

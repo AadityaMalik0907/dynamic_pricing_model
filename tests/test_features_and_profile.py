@@ -37,6 +37,8 @@ def test_competitor_features_distinguish_present_and_missing_quotes() -> None:
     history = make_demo_observations(domain="hotel", days=3, entities=1)
     history.loc[0, "competitor_price"] = 5000.0
     history.loc[0, "competitor_source"] = "fixture_source"
+    history.loc[1, "competitor_price"] = np.nan
+    history.loc[1, "competitor_source"] = None
     features = DemandFeatureTransformer().fit_transform(history)
 
     assert features.loc[0, "competitor_price_relative"] == history.loc[0, "price"] / 5000.0 - 1

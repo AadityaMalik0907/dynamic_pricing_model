@@ -132,7 +132,9 @@ def validate_observations(
     result = frame.copy(deep=True).reset_index(drop=True)
     # Normalize text fields without mutating the caller's DataFrame.
     for column in ("entity_id", "domain", "currency", "source"):
-        result[column] = result[column].map(lambda value: value.strip() if isinstance(value, str) else value)
+        result[column] = result[column].map(
+            lambda value: value.strip() if isinstance(value, str) else value
+        )
     for column in ("competitor_source", "event", "seasonality"):
         if column in result.columns:
             result[column] = result[column].map(
@@ -156,7 +158,9 @@ def validate_observations(
 
         currency = row["currency"]
         if not isinstance(currency, str) or not _CURRENCY_PATTERN.fullmatch(currency):
-            issues.append(f"row {label}: 'currency' must be a three-letter uppercase code (for example INR)")
+            issues.append(
+                f"row {label}: 'currency' must be a three-letter uppercase code (for example INR)"
+            )
 
         observed_at = _timestamp(
             row["observed_at"],
@@ -217,7 +221,9 @@ def validate_observations(
         for optional in ("competitor_source", "event", "seasonality"):
             if optional in result.columns and pd.notna(row.get(optional)):
                 if not isinstance(row[optional], str) or not row[optional].strip():
-                    issues.append(f"row {label}: '{optional}' must be a non-empty string when provided")
+                    issues.append(
+                        f"row {label}: '{optional}' must be a non-empty string when provided"
+                    )
                 elif optional == "competitor_source" and competitor_price is None:
                     issues.append(
                         f"row {label}: '{optional}' requires a non-empty 'competitor_price'"
@@ -235,7 +241,9 @@ def validate_observations(
     duplicate_mask = result.duplicated(subset=duplicate_key, keep=False)
     if duplicate_mask.any():
         duplicate_rows = ", ".join(str(index) for index in result.index[duplicate_mask].tolist())
-        issues.append(f"duplicate observation key ({', '.join(duplicate_key)}) at row(s): {duplicate_rows}")
+        issues.append(
+            f"duplicate observation key ({', '.join(duplicate_key)}) at row(s): {duplicate_rows}"
+        )
 
     if issues:
         raise DataValidationError(issues)

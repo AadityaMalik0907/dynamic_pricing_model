@@ -79,6 +79,8 @@ Pin compatible dependency versions in `pyproject.toml` or a lock file once imple
 
 **Done when:** The selected model beats or has a documented reason not to beat the baseline on held-out time periods; evaluation is reproducible; model artifacts load with schema/version checks. Forecast accuracy is not presented as proof of revenue lift.
 
+**Implementation status:** Completed for the initial offline pipeline. It uses chronological 70/15/15 train/validation/test splits, a same-weekday seasonal naive baseline, scikit-learn HistGradientBoosting, and an optional XGBoost candidate. Validation MAE selects the persisted predictor; metrics include MAE, RMSE, and WAPE. Versioned joblib and JSON metadata are written per domain, with domain and feature-schema checks on load. Synthetic data only verifies that the pipeline runs; representative, licensed data is required to assess real forecast quality.
+
 ### Phase 5 — Price recommendation and offline evaluation
 
 **Work:** Define a transparent objective, such as expected revenue = candidate price × predicted units sold, with optional documented costs or margin constraints. Search a bounded candidate-price grid and enforce configured floor, ceiling, inventory, and maximum-change rules. Include a safe fallback when inputs/models are unavailable. Evaluate against the current-price and simple rule baselines using historical replay, while clearly documenting that replay is not a causal experiment and historical demand may be censored by stockouts.

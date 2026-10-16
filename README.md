@@ -39,7 +39,7 @@ In a second terminal with the virtual environment activated:
 dynamic-pricing dashboard
 ```
 
-The Streamlit page is currently a placeholder. Training, recommendation logic, and KPI views arrive in later phases.
+The Streamlit page remains a placeholder; recommendations and KPI views arrive in later phases.
 
 ## Phase 2 data layer
 
@@ -49,10 +49,22 @@ The `dynamic_pricing.data` package adapts hotel and e-commerce source columns in
 
 Use `profile_observations(data)` and `render_profile_markdown(profile)` to generate descriptive data coverage, missingness, inventory saturation, and price-demand summaries. Use `DemandFeatureTransformer` fitted on training history to generate features for subsequent rows. Feature generation blocks current/future target outcomes from lag history and does not write platform-specific files. See the feature contract for timestamp and label assumptions.
 
+## Phase 4 demand forecasting
+
+Train and evaluate on deterministic synthetic hotel data:
+
+```powershell
+dynamic-pricing train-demo --domain hotel --days 120 --artifact-dir artifacts
+```
+
+The pipeline sorts by target date and makes non-overlapping chronological 70/15/15 train, validation, and test splits. Validation MAE selects between the same-weekday seasonal naive baseline, scikit-learn HistGradientBoosting, and XGBoost. The selected predictor is assessed on the later test period using MAE, RMSE, and WAPE. If an ML candidate does not beat the baseline on validation, the baseline is persisted; if it loses on test, the result includes a warning. Domain-specific joblib bundles and JSON metadata include the training window, split dates, metrics, model version, and feature schema. Loading checks artifact format, domain, and schema.
+
+For canonical real data, call `train_forecaster(observations, domain="hotel", artifact_dir="artifacts")` after loading through the Phase 2 data adapters. Synthetic results only verify the software pipeline; they do not establish real forecast accuracy or revenue lift. Keep private data and generated artifacts out of Git.
+
 ## Configuration
 
 Copy `.env.example` to `.env` and edit local values as needed. `.env` is ignored by Git. Defaults are demo assumptions documented in `configs/requirements.md`, not property-specific recommendations. Keep raw/private data and generated model artifacts out of version control.
 
 ## Current project state
 
-Phases 0–3 provide documented assumptions, data and feature contracts, Python packaging, environment settings, API/dashboard shells, data validation/adapters, synthetic demo observations, profiling, and leakage-aware features. There is no trained model or recommendation endpoint yet.
+Phases 0–4 provide documented assumptions, data and feature contracts, Python packaging, environment settings, API/dashboard shells, data validation/adapters, synthetic demo observations, profiling, leakage-aware features, and chronological demand forecasting. Price recommendation and model-backed API serving remain for later phases.
