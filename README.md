@@ -20,6 +20,7 @@ py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
+python -m pip install -e ".[notebooks]"
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
@@ -31,7 +32,7 @@ If Python 3.11 is unavailable, use `py -3.13` in the first command. The project 
 dynamic-pricing api
 ```
 
-Open `http://127.0.0.1:8000/health` for process health and `http://127.0.0.1:8000/docs` for the API shell documentation. The health endpoint does not mean a model is trained or ready.
+Open `http://127.0.0.1:8000/health` for process health, `http://127.0.0.1:8000/ready` for notebook-artifact readiness, and `http://127.0.0.1:8000/docs` for the API. The forecast endpoint requires the exported model and 28 consecutive daily history rows.
 
 In a second terminal with the virtual environment activated:
 
@@ -39,7 +40,7 @@ In a second terminal with the virtual environment activated:
 dynamic-pricing dashboard
 ```
 
-The Streamlit page remains a placeholder; recommendations and KPI views arrive in later phases.
+The Streamlit page reads the same exported model and processed daily history, then displays the next-day arrival forecast and holdout metrics.
 
 ## Phase 2 data layer
 
@@ -49,39 +50,31 @@ The `dynamic_pricing.data` package adapts hotel and e-commerce source columns in
 
 Use `profile_observations(data)` and `render_profile_markdown(profile)` to generate descriptive data coverage, missingness, inventory saturation, and price-demand summaries. Use `DemandFeatureTransformer` fitted on training history to generate features for subsequent rows. Feature generation blocks current/future target outcomes from lag history and does not write platform-specific files. See the feature contract for timestamp and label assumptions.
 
-## Phase 4 demand forecasting
+## Phase 4 model training notebook
 
-Train and evaluate on deterministic synthetic hotel data:
-
-```powershell
-dynamic-pricing train-demo --domain hotel --days 120 --artifact-dir artifacts
-```
-
-The pipeline sorts by target date and makes non-overlapping chronological 70/15/15 train, validation, and test splits. Validation MAE selects between the same-weekday seasonal naive baseline, scikit-learn HistGradientBoosting, and XGBoost. The selected predictor is assessed on the later test period using MAE, RMSE, and WAPE. If an ML candidate does not beat the baseline on validation, the baseline is persisted; if it loses on test, the result includes a warning. Domain-specific joblib bundles and JSON metadata include the training window, split dates, metrics, model version, and feature schema. Loading checks artifact format, domain, and schema.
-
-For canonical real data, call `train_forecaster(observations, domain="hotel", artifact_dir="artifacts")` after loading through the Phase 2 data adapters. Synthetic results only verify the software pipeline; they do not establish real forecast accuracy or revenue lift. Keep private data and generated artifacts out of Git.
-
-### Train the first model on `hotel_bookings.csv`
-
-The supplied hotel booking file can train a daily **completed reservation arrivals** model. Run this from the repository root, replacing the path if the file is stored elsewhere:
+Model experimentation and training happen in Jupyter, separate from API/dashboard inference. Install the notebook extra and launch the hotel training notebook:
 
 ```powershell
-dynamic-pricing train-hotel --data "C:\Users\aadit\OneDrive\Desktop\hotel_bookings.csv" --artifact-dir artifacts
+python -m pip install -e ".[notebooks]"
+jupyter lab notebooks/01_hotel_arrivals_training.ipynb
 ```
 
-This trains one scikit-learn HistGradientBoosting model using calendar features and prior daily arrivals, with date-ordered train/validation/test periods and a same-weekday naive baseline. It removes exact duplicate source rows, excludes canceled and no-show reservations, and writes a local model plus JSON metrics/metadata under `artifacts/`. The metadata contains the input file hash, split dates, overall and per-hotel test scores, and limitations.
+The notebook compares Linear Regression, Random Forest, HistGradientBoosting, XGBoost, and a median reference. It uses chronological train/validation/test periods, selects by validation MAE, scores the later test period, and exports the selected pipeline plus metadata. The API and Streamlit dashboard load this artifact; they never fit a model.
 
-The dataset does not contain inventory snapshots or a usable price history, so this model forecasts arrival counts only; it cannot estimate price response, available room nights, or revenue. The target counts reservation records, not rooms or room nights. The Amazon product/review file has no sales dates or units sold, so it cannot train a demand-forecast model. Do not combine these datasets into one training table.
+The supplied source CSVs remain in their original locations:
 
-### Train a traditional model on the Amazon product file
+- `C:\Users\aadit\OneDrive\Desktop\hotel_bookings.csv`
+- `C:\Users\aadit\OneDrive\Desktop\amazon.csv`
 
-```powershell
-dynamic-pricing train-amazon --data "C:\Users\aadit\OneDrive\Desktop\amazon.csv" --artifact-dir artifacts
-```
+After training, these local files are created (they are excluded from Git):
 
-This runs a grouped 80/20 train/test regression using a RandomForest to predict cumulative `rating_count` from listed price, discount, and top-level product category. Repeated product IDs are kept within only one split to prevent product leakage. It prints and saves test MAE, RMSE, WAPE, and R² alongside a training-median baseline.
+- `artifacts/models/hotel_arrivals_model.joblib` — fitted model pipeline
+- `artifacts/models/hotel_arrivals_model.json` — selected model, split dates, metrics, and feature schema
+- `artifacts/models/hotel_daily_arrivals.csv` — processed daily history for the dashboard
 
-`rating_count` is a review-popularity proxy, **not product sales or demand**. The Amazon file is cross-sectional and has no sales quantities or observation dates, so this is a conventional supervised ML exercise, not a dynamic-pricing demand model. Do not use its predictions to set prices. A valid e-commerce demand/pricing model needs time-stamped units sold or orders alongside price and inventory.
+FastAPI exposes `GET /ready` and `POST /forecast/hotel-arrivals`; interactive API docs are at `/docs`. To deploy the model, provide the saved model and metadata at `MODEL_ARTIFACT_DIR` on the hosting platform.
+
+The hotel data supports completed reservation-arrival counts only; it has no inventory snapshots or forecast-time prices, so it cannot estimate room-night demand, price response, or revenue. The Amazon file has no dated sales or units sold, so it cannot train an e-commerce demand model. We are not using the prior review-count popularity model for pricing. A proper e-commerce model needs time-stamped sales with units sold, price, and inventory.
 
 ## Configuration
 
@@ -89,4 +82,4 @@ Copy `.env.example` to `.env` and edit local values as needed. `.env` is ignored
 
 ## Current project state
 
-Phases 0–4 provide documented assumptions, data and feature contracts, Python packaging, environment settings, API/dashboard shells, data validation/adapters, synthetic demo observations, profiling, leakage-aware features, and chronological demand forecasting. Price recommendation and model-backed API serving remain for later phases.
+Phases 0–4 provide documented assumptions, data and feature contracts, Python packaging, environment settings, API/dashboard inference shells, data validation/adapters, profiling, leakage-aware features, and notebook-trained hotel forecasting whose artifact is consumed by the API/dashboard. Price recommendation and e-commerce demand training remain for later phases and require suitable sales data.

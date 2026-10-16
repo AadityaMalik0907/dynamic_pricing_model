@@ -1,12 +1,9 @@
-import json
-
 import pandas as pd
 import pytest
 
 from dynamic_pricing.models import (
     build_arrival_features,
     build_daily_hotel_arrivals,
-    train_hotel_arrivals,
 )
 
 
@@ -78,25 +75,6 @@ def test_lagged_features_do_not_depend_on_future_arrivals() -> None:
         original_features.loc[earlier].reset_index(drop=True),
         changed_features.loc[earlier].reset_index(drop=True),
     )
-
-
-def test_user_dataset_training_writes_chronological_metrics_and_artifact(tmp_path) -> None:
-    source = tmp_path / "hotel_bookings.csv"
-    _booking_rows().to_csv(source, index=False)
-
-    result = train_hotel_arrivals(source, artifact_dir=tmp_path / "artifacts")
-
-    assert result.row_counts["train"] > result.row_counts["validation"]
-    assert result.row_counts["test"] > 0
-    assert result.date_ranges["train_end"] < result.date_ranges["validation_start"]
-    assert result.date_ranges["validation_end"] < result.date_ranges["test_start"]
-    assert set(result.segment_metrics) == {"City Hotel", "Resort Hotel"}
-    assert (tmp_path / "artifacts" / "hotel-arrivals-hist-gradient-boosting.joblib").is_file()
-    metadata = json.loads(
-        (tmp_path / "artifacts" / "hotel-arrivals-hist-gradient-boosting.json").read_text()
-    )
-    assert metadata["target_unit"] == "reservation arrivals (not room nights)"
-    assert metadata["dataset_sha256"]
 
 
 def test_daily_arrival_builder_rejects_inconsistent_booking_outcomes() -> None:

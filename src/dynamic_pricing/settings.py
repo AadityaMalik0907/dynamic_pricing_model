@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     max_price_change_pct: float = Field(default=0.15, ge=0, le=1)
     data_refresh_hours: int = Field(default=24, gt=0)
     model_refresh_days: int = Field(default=7, gt=0)
+    model_artifact_dir: str = "artifacts/models"
 
     @model_validator(mode="after")
     def validate_price_bounds(self) -> "Settings":
