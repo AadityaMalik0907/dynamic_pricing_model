@@ -61,6 +61,18 @@ The pipeline sorts by target date and makes non-overlapping chronological 70/15/
 
 For canonical real data, call `train_forecaster(observations, domain="hotel", artifact_dir="artifacts")` after loading through the Phase 2 data adapters. Synthetic results only verify the software pipeline; they do not establish real forecast accuracy or revenue lift. Keep private data and generated artifacts out of Git.
 
+### Train the first model on `hotel_bookings.csv`
+
+The supplied hotel booking file can train a daily **completed reservation arrivals** model. Run this from the repository root, replacing the path if the file is stored elsewhere:
+
+```powershell
+dynamic-pricing train-hotel --data "C:\Users\aadit\OneDrive\Desktop\hotel_bookings.csv" --artifact-dir artifacts
+```
+
+This trains one scikit-learn HistGradientBoosting model using calendar features and prior daily arrivals, with date-ordered train/validation/test periods and a same-weekday naive baseline. It removes exact duplicate source rows, excludes canceled and no-show reservations, and writes a local model plus JSON metrics/metadata under `artifacts/`. The metadata contains the input file hash, split dates, overall and per-hotel test scores, and limitations.
+
+The dataset does not contain inventory snapshots or a usable price history, so this model forecasts arrival counts only; it cannot estimate price response, available room nights, or revenue. The target counts reservation records, not rooms or room nights. The Amazon product/review file has no sales dates or units sold, so it cannot train a demand-forecast model. Do not combine these datasets into one training table.
+
 ## Configuration
 
 Copy `.env.example` to `.env` and edit local values as needed. `.env` is ignored by Git. Defaults are demo assumptions documented in `configs/requirements.md`, not property-specific recommendations. Keep raw/private data and generated model artifacts out of version control.

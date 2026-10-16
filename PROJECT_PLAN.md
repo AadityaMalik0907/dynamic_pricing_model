@@ -79,7 +79,7 @@ Pin compatible dependency versions in `pyproject.toml` or a lock file once imple
 
 **Done when:** The selected model beats or has a documented reason not to beat the baseline on held-out time periods; evaluation is reproducible; model artifacts load with schema/version checks. Forecast accuracy is not presented as proof of revenue lift.
 
-**Implementation status:** Completed for the initial offline pipeline. It uses chronological 70/15/15 train/validation/test splits, a same-weekday seasonal naive baseline, scikit-learn HistGradientBoosting, and an optional XGBoost candidate. Validation MAE selects the persisted predictor; metrics include MAE, RMSE, and WAPE. Versioned joblib and JSON metadata are written per domain, with domain and feature-schema checks on load. Synthetic data only verifies that the pipeline runs; representative, licensed data is required to assess real forecast quality.
+**Implementation status:** The offline pipeline includes chronological 70/15/15 splits, a same-weekday seasonal naive baseline, scikit-learn HistGradientBoosting, and an optional XGBoost candidate for canonical observations. A separate first real-data model trains on the supplied hotel booking records to forecast completed daily reservation arrivals and reports a later chronological holdout against the naive baseline, overall and by hotel. Its metadata records duplicate handling, file hash, splits, scores, and limitations. This dataset has no inventory snapshots or forecast-time prices, so the model does not measure room-night demand or price response. The Amazon product/review file has no date or sales quantity and is unsuitable for demand forecasting.
 
 ### Phase 5 — Price recommendation and offline evaluation
 
