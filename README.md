@@ -73,6 +73,16 @@ This trains one scikit-learn HistGradientBoosting model using calendar features 
 
 The dataset does not contain inventory snapshots or a usable price history, so this model forecasts arrival counts only; it cannot estimate price response, available room nights, or revenue. The target counts reservation records, not rooms or room nights. The Amazon product/review file has no sales dates or units sold, so it cannot train a demand-forecast model. Do not combine these datasets into one training table.
 
+### Train a traditional model on the Amazon product file
+
+```powershell
+dynamic-pricing train-amazon --data "C:\Users\aadit\OneDrive\Desktop\amazon.csv" --artifact-dir artifacts
+```
+
+This runs a grouped 80/20 train/test regression using a RandomForest to predict cumulative `rating_count` from listed price, discount, and top-level product category. Repeated product IDs are kept within only one split to prevent product leakage. It prints and saves test MAE, RMSE, WAPE, and R² alongside a training-median baseline.
+
+`rating_count` is a review-popularity proxy, **not product sales or demand**. The Amazon file is cross-sectional and has no sales quantities or observation dates, so this is a conventional supervised ML exercise, not a dynamic-pricing demand model. Do not use its predictions to set prices. A valid e-commerce demand/pricing model needs time-stamped units sold or orders alongside price and inventory.
+
 ## Configuration
 
 Copy `.env.example` to `.env` and edit local values as needed. `.env` is ignored by Git. Defaults are demo assumptions documented in `configs/requirements.md`, not property-specific recommendations. Keep raw/private data and generated model artifacts out of version control.
