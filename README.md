@@ -4,6 +4,7 @@ A Python project foundation for an advisory hotel room-night pricing demo. It wi
 
 See [PROJECT_PLAN.md](PROJECT_PLAN.md) for the roadmap and [configs/requirements.md](configs/requirements.md) for the initial scope, assumptions, and demo guardrails.
 See [configs/data_contract.md](configs/data_contract.md) for accepted hotel/e-commerce CSV fields and the platform-neutral loader.
+See [configs/feature_contract.md](configs/feature_contract.md) for feature meanings, temporal leakage rules, and analysis limits.
 
 ## Requirements
 
@@ -44,10 +45,14 @@ The Streamlit page is currently a placeholder. Training, recommendation logic, a
 
 The `dynamic_pricing.data` package adapts hotel and e-commerce source columns into the shared observation schema, validates rows, and provides deterministic synthetic demo observations. The loader accepts either a path or a file-like object, so the same code can be used with Streamlit uploads or another platform's request/storage layer. It does not persist uploads. See the data contract for required timestamp, provenance, and inventory semantics.
 
+## Phase 3 analysis and features
+
+Use `profile_observations(data)` and `render_profile_markdown(profile)` to generate descriptive data coverage, missingness, inventory saturation, and price-demand summaries. Use `DemandFeatureTransformer` fitted on training history to generate features for subsequent rows. Feature generation blocks current/future target outcomes from lag history and does not write platform-specific files. See the feature contract for timestamp and label assumptions.
+
 ## Configuration
 
 Copy `.env.example` to `.env` and edit local values as needed. `.env` is ignored by Git. Defaults are demo assumptions documented in `configs/requirements.md`, not property-specific recommendations. Keep raw/private data and generated model artifacts out of version control.
 
 ## Current project state
 
-Phases 0–2 provide documented assumptions and data contracts, Python packaging, environment settings, API/dashboard shells, validation/adapters, synthetic demo observations, and a GitHub Actions quality workflow. There is no trained model or recommendation endpoint yet.
+Phases 0–3 provide documented assumptions, data and feature contracts, Python packaging, environment settings, API/dashboard shells, data validation/adapters, synthetic demo observations, profiling, and leakage-aware features. There is no trained model or recommendation endpoint yet.

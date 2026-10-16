@@ -71,7 +71,7 @@ Pin compatible dependency versions in `pyproject.toml` or a lock file once imple
 
 **Work:** Profile distributions, coverage, missing values, seasonality, inventory censoring, and price/demand relationships. Build reusable feature transformations for calendar effects, lagged demand, rolling statistics, inventory pressure, and competitor-price differences where available. Fit transformations only on training data and ensure every feature is knowable at recommendation time.
 
-**Done when:** A reproducible analysis report describes data limitations and baselines; feature generation has tests for time ordering, missing data, and leakage; training and serving use the same transformations.
+**Done when:** A reproducible analysis report describes data limitations and baselines; feature generation has tests for time ordering, missing data, and leakage; training and serving use the same transformations. The feature contract distinguishes realized demand labels from snapshot booking pace.
 
 ### Phase 4 — Demand forecasting models
 

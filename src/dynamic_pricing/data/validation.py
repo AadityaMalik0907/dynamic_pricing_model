@@ -48,7 +48,7 @@ def _number(value: object, *, row: object, column: str, issues: list[str]) -> fl
     if pd.isna(value):
         issues.append(f"row {row}: '{column}' is required")
         return None
-    if isinstance(value, (bool, np.bool_)):
+    if isinstance(value, bool | np.bool_):
         issues.append(f"row {row}: '{column}' must be numeric")
         return None
     try:
@@ -73,7 +73,7 @@ def _timestamp(
     if pd.isna(value):
         issues.append(f"row {row}: '{column}' is required")
         return None
-    if not isinstance(value, (str, date, datetime, pd.Timestamp)):
+    if not isinstance(value, str | date | datetime | pd.Timestamp):
         issues.append(f"row {row}: '{column}' must be an ISO-8601 date or timestamp")
         return None
     try:

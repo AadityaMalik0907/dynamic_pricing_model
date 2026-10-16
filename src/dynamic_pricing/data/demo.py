@@ -43,7 +43,9 @@ def make_demo_observations(
             price = base_price * (1 + 0.05 * np.sin(2 * np.pi * day_number / 30))
             demand_mean = max(1.0, capacity * 0.55 * weekly_factor * annual_proxy)
             simulated_demand = min(capacity, int(rng.poisson(demand_mean)))
-            observed = (target - pd.Timedelta(days=1)).tz_localize("UTC")
+            # Snapshot at the start of the target date. Prior calendar buckets
+            # have closed, while the current bucket's outcome is still future.
+            observed = target.tz_localize("UTC")
             row = {
                 "observed_at": observed.isoformat(),
                 "target_at": target.date().isoformat(),
